@@ -8,21 +8,23 @@ FeatDetParam:
   feature_track_length_thresh: 125
   feature_track_dropout_rate: 0.2
 MappingMode:
-  prescan_april_tags_only: false # Only use pre-scanned april tags
-  use_vio_orientation_as_absolute: true  # use vio orientation as absolute reference or not
+  # feat_type can only be nature, tag, or mixed. "mixed" is a mixture of tag + nature features
+  # Either tag or mixed will enable april tag detection in mapper
+  feat_type: nature
+  # mapper_type can only be normal, reloc_only, or disabled
+  mapper_type: normal
   # if a rig has high BOW score but larger spatial distance
   # than max_neighour_rig_dis, do not count it as key rig
   # vio does not require cov computed in mapping
   compute_cov: false
   fix_latest_rig_at_ba: true
-  detect_april_tag: false
   modify_prescan_map: false
-  disabled: false
   ignore_feat_on_floor: false
   fix_height_value: false  # this also affects vio tracker
+  # xd_mode: 1 or 2 will override feat_type and mapper_type above.
+  xd_mode: 0  # 0: off, 1: xd record map, 2: xd reloc mode
 Mapping:
-  # 20 / 400
-  max_feature_search_range: 0.05
+  max_feature_search_range: 0.05  # 20 / 400
   min_keyrig_gap_num: 10
   min_keyrig_gap_time_sec: 0.5
   min_gen_local_map_gap_num: 10
@@ -33,14 +35,14 @@ Mapping:
   max_neighbour_rig_dis: 3.0
   orb_match_dist_thresh: 51 # range is 0 - 255
   orb_match_thresh_test_ratio: 0.8
+  keyrig_tran_thresh: 0.2  # Insert a keyrig when translation (m) is larger than this
+  keyrig_rot_thresh: 25.0   # Insert a keyrig when rotation (deg) is larger than this
   local_ba_min_movalble_rig_num: 1
   local_ba_max_movalble_rig_num: 3
   feat_det_num: 300 # uniform radius will limit the number of points
-  feat_det_pyra_level: 4  # Do feat detection on all the levels <= this val
+  feat_det_pyra_level: 4  # Total level of pyramids used for feature detections, e.g., 4 means pyra0, 1, 2, 3
   slave_det: direct # epi or direct
   feat_det_uniform_radius: 32
-  run_dense_stereo_freq: 10 # How often do we run left and right image dense matching
-  camera_to_floor_height: 0.5 # Only used in dense mapping mode. To remove floor
   max_vio_fail_count_tolerance: 20 # 1 sec
   short_term_vio_fail_count: 3
   max_reloc_attempt: 5
@@ -48,18 +50,15 @@ Mapping:
   loop_close_cooldown_sec: 10.0
   max_lost_sec_before_use_vio_to_reset: 1
   smoothing_time_length: 0.2
-  calib_verify_stereo_good_match_num: 20
+  calib_verify_stereo_good_match_ratio: 0.9
 Tracking:
   max_feature_search_range: 0.025  # 10 / 400
   orb_match_dist_thresh: 51  # range is 0 - 255
   orb_match_thresh_test_ratio: 0.9
   feature_uncertainty: 10
-  # Turn on either use_of_id or use_april_tag will force vio config matchWithId to true
-  imaging_FPS: 999 # use the fastest image rate (25Hz for XP cam)
-  aec_index: 100  # [0 to 167]
+  # Turn on use_of_id will force vio config matchWithId to true
   use_of_id: true
   undistort_before_vio: false
-  use_april_tag: false
   slave_det: direct # epi or OF or direct
 Reloc:
   min_reloc_match_score: 1.175494e-38
@@ -72,8 +71,33 @@ Reloc:
   use_pnp: true # or relative pose
   H_inlier_pixel_dis: 0.025 # 10 pixels with f = 400
   matches_area_ratio: 0.5 # 0 - 1
-Navigation:
-  base_velocity: 0.7 # meter per second
-  use_ultrasound: 16  # 1 A 2 B 4 C 8 D 16 E 32 F 64 G 128 H
+  small_error_count_thres: 25
+  check_with_noncentral_rel: true
+  redo_bootstrap: true       # re-bootstrap the query pose to the best ref pose
+  use_input_rotation: false  # only solve translation
+  min_reloc_tag_corners: 8  # Minimal tag corner 2D-3D observations required for tag reloc
+  prune_bad_tags: false   # Heuristically prune bad tags from solvePnPRansac
+  refine_tag_depth: 5.0  # Refine (ignore) tag map points that are further than this threshold
+Depth:
+  horizontal_bucket_num: 30
+  height_below_cam: -0.5 # Used to filter out the depth from the ground (m)
+  height_above_cam: 0.6 # Used to filter out the depth from the ceiling (m)
+  depth_confidence: 0.2
+  run_dense_stereo_freq: 10 # How often do we run left and right image dense matching
+  camera_to_floor_height: 0.5 # Only used in dense mapping mode. To remove floor
+  filter_type: binning # Visual depth filter type: binning, convolution(only used in RL control mode)
+  use_stereo_sgbm: true  # stereo sgbm provides denser depth with 3x-5x computation
 Nature:
   gravity: [0, 0, -9.799]
+RosParam:
+  enable_ros_topic: false
+  slam_node: xp_slam
+  mapper_stable_topic: mapper_stable
+  slam_pose_topic: slam_pose
+  depth_image_topic: depth_image
+  slam_frame_id: slam
+  T_AD:  # Used to specify the transformation between pose output frame(A) and sensor frame(D)
+    - [1, 0, 0, 0]
+    - [0, 0, 1, 0]
+    - [0, -1, 0, 1]
+    - [0, 0, 0, 1]

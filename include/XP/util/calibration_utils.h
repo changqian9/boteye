@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2017-2018 Baidu Robotic Vision Authors. All Rights Reserved.
+ * Copyright 2017-2019 Baidu Robotic Vision Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,5 +25,6 @@ bool check_grid_point_density(const std::vector<std::vector<cv::Point2f> >& dete
                               const cv::Point2f& pinhole,
                               const bool verbose = false,
                               cv::Mat* visualize_img = nullptr);  // mark the radius and squares
+
 }  // namespace XP
 #endif  // XP_INCLUDE_XP_UTIL_CALIBRATION_UTILS_H_

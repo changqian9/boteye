@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2017-2018 Baidu Robotic Vision Authors. All Rights Reserved.
+ * Copyright 2017-2019 Baidu Robotic Vision Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include <iostream>
 #include <deque>
 #include <mutex>
+#include <string>
 #include <condition_variable>
 
 namespace XPDRIVER {
@@ -55,7 +56,7 @@ class shared_queue {
   shared_queue& operator=(const shared_queue&) = delete;
   shared_queue(const shared_queue& other) = delete;
 
-  shared_queue() : kill_(false) {}
+  explicit shared_queue(const std::string& name) : name_(name), kill_(false) {}
   ~shared_queue() {
     // make sure you always call kill before destruction
     if (!kill_ && !queue_.empty()) {
@@ -63,11 +64,19 @@ class shared_queue {
     }
   }
 
-  // Use this function to kill the shared_queue before the application exists
+  // Use this function to kill the shared_queue before the application exits
   // to prevent potential deadlock.
   void kill() {
     kill_ = true;
-    cond_.notify_one();
+    cond_.notify_all();  // Notify all for all potential subscribers to stop waiting
+  }
+
+  // Use this function to "re-initialize" the shared queue
+  void reinit() {
+    if (kill_) {
+      kill_ = false;
+      this->clear();
+    }
   }
 
   T front() {
@@ -149,6 +158,7 @@ class shared_queue {
   Container queue_;
   std::mutex m_;
   std::condition_variable cond_;
+  std::string name_;
   bool kill_;
 };
 }  // namespace XPDRIVER

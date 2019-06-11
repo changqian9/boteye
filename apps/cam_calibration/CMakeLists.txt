@@ -3,6 +3,7 @@ project(cam_calibration)
 
 add_executable(${PROJECT_NAME}
  cam_calibration.cpp
+ verification.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -17,5 +18,6 @@ target_link_libraries(${PROJECT_NAME}
  ${GLOG_LIBRARY}
  ${GFLAGS_LIBRARY}
  ${Boost_LIBRARIES}
- ${XP_LIBRARY}
+ ${XP_LIBRARIES}
+ ${XP_DRIVER_LIBRARY}
 )

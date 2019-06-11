@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2017-2018 Baidu Robotic Vision Authors. All Rights Reserved.
+ * Copyright 2017-2019 Baidu Robotic Vision Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *****************************************************************************/
-#ifndef INCLUDE_DRIVER_HELPER_IMAGE_UTILS_H_
-#define INCLUDE_DRIVER_HELPER_IMAGE_UTILS_H_
+#ifndef INCLUDE_DRIVER_HELPER_BASIC_IMAGE_UTILS_H_
+#define INCLUDE_DRIVER_HELPER_BASIC_IMAGE_UTILS_H_
 
 #include <driver/helper/xp_logging.h>
 #include <opencv2/core.hpp>
 #include <vector>
+#include <string>
 
 namespace XPDRIVER {
 class AutoWhiteBalance {
@@ -41,6 +42,20 @@ class AutoWhiteBalance {
     if (!m_use_preset_) {
       compute_AWB_coefficients(*rgb_img_ptr);
     }
+#ifdef __ARM_NEON__
+    correct_white_balance_coefficients_neon(rgb_img_ptr);
+#else
+    correct_white_balance_coefficients(rgb_img_ptr);
+#endif  // __ARM_NEON__
+  }
+
+  inline void run_original(cv::Mat* rgb_img_ptr) {
+    XP_CHECK_EQ(rgb_img_ptr != NULL, true);
+    XP_CHECK_EQ(rgb_img_ptr->channels(), 3);
+    XP_CHECK_EQ(rgb_img_ptr->type(), CV_8UC3);
+    if (!m_use_preset_) {
+      compute_AWB_coefficients(*rgb_img_ptr);
+    }
     correct_white_balance_coefficients(rgb_img_ptr);
   }
 
@@ -54,6 +69,10 @@ class AutoWhiteBalance {
 
   inline void setAutoWhiteBalanceMode() {
     m_use_preset_ = false;
+  }
+
+  inline void setWhiteBalancePresetMode(void) {
+    m_use_preset_ = true;
   }
 
  private:
@@ -79,6 +98,8 @@ class AutoWhiteBalance {
 };
 
 bool computeNewAecTableIndex(const cv::Mat& raw_img,
+                             const bool smooth_aec,
+                             const uint32_t AEC_steps,
                              int* aec_index_ptr);
 
 int sampleBrightnessHistogram(const cv::Mat& raw_img,
@@ -89,4 +110,4 @@ void gridBrightDarkAdjustBrightness(const cv::Mat& raw_img,
                                     int* adjusted_pixel_val_ptr);
 }  // namespace XPDRIVER
 
-#endif  // INCLUDE_DRIVER_HELPER_IMAGE_UTILS_H_
+#endif  // INCLUDE_DRIVER_HELPER_BASIC_IMAGE_UTILS_H_
